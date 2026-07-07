@@ -1,20 +1,16 @@
 [Unit]
-Description=sing-box proxy client (auto-failover VPS/VDS)
+Description=sing-box portable client (auto-failover VPS/VDS)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
-ExecStartPre=/home/vladimir/vpn/sing.sh add-bypass
+ExecStartPre=/bin/bash -c 'DIR=/home/vladimir/vpn; for ip in 46.8.233.202/32 31.77.77.47/32 94.126.153.10/32; do gw=$(ip route show default | awk "{print \$3}" | head -1); dev=$(ip route show default | awk "{print \$5}" | head -1); ip route replace "$ip" via "$gw" dev "$dev" 2>/dev/null; ip rule add to "$ip" table main priority 8998 2>/dev/null || true; done'
 ExecStart=/home/vladimir/vpn/sing-box run -c /home/vladimir/vpn/config.json
-ExecStopPost=/home/vladimir/vpn/sing.sh del-bypass
+ExecStopPost=/bin/bash -c 'while ip rule show | grep -q "^8998:"; do ip rule del priority 8998 2>/dev/null || break; done'
 Restart=always
 RestartSec=5
-StartLimitIntervalSec=0
 LimitNOFILE=65536
-StandardOutput=append:/var/log/sing-box.log
-StandardError=append:/var/log/sing-box.log
 
 [Install]
 WantedBy=multi-user.target

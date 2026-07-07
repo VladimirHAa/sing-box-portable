@@ -1,6 +1,10 @@
 sing-box
+sing-box.exe
+*.dll
 *.srs
 *.log
+*.swp
 vds.json
 vps.json
 vpn.sh
+test-*.json
