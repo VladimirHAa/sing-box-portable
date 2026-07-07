@@ -125,8 +125,8 @@ function Show-Dashboard {
         # Header
         $statusText = if ($running) {
             $proc = Get-Process -Name "sing-box" -ErrorAction SilentlyContinue | Select-Object -First 1
-            $pid = if ($proc) { $proc.Id } else { "?" }
-            "RUNNING  PID $pid"
+            $procId = if ($proc) { $proc.Id } else { "?" }
+            "RUNNING  PID $procId"
         } else { "STOPPED" }
         $statusColor = if ($running) { "Green" } else { "Red" }
 
@@ -174,9 +174,15 @@ function Show-Dashboard {
         $key = $null
         $waited = 0
         while ($null -eq $key -and $waited -lt 5) {
-            if ([Console]::KeyAvailable) {
-                $key = [Console]::ReadKey($true)
-            } else {
+            try {
+                if ([Console]::KeyAvailable) {
+                    $key = [Console]::ReadKey($true)
+                } else {
+                    Start-Sleep -Seconds 1
+                    $waited++
+                }
+            } catch {
+                # No console (e.g. SSH session) — just sleep
                 Start-Sleep -Seconds 1
                 $waited++
             }
