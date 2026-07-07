@@ -1,0 +1,140 @@
+{
+  "log": {
+    "level": "info"
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-direct",
+        "address": "udp://1.1.1.1",
+        "detour": "direct",
+        "strategy": "ipv4_only"
+      },
+      {
+        "tag": "dns-remote",
+        "address": "tls://1.1.1.1",
+        "detour": "auto",
+        "strategy": "ipv4_only"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": ["geosite-ru", "geoip-ru"],
+        "server": "dns-direct"
+      },
+      {
+        "server": "dns-remote"
+      }
+    ],
+    "final": "dns-remote",
+    "strategy": "ipv4_only",
+    "independent_cache": true
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "interface_name": "sing-tun",
+      "address": ["172.16.254.1/30"],
+      "auto_route": true,
+      "strict_route": true,
+      "sniff": true,
+      "stack": "system",
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "urltest",
+      "tag": "auto",
+      "outbounds": ["hy2-vps", "hy2-backup"],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 100,
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hy2-vps",
+      "server": "46.8.233.202",
+      "server_port": 9444,
+      "up_mbps": 100,
+      "down_mbps": 200,
+      "password": "hkGR4DMHE0aXb5vyfR08zg==",
+      "tls": {
+        "enabled": true,
+        "insecure": true,
+        "server_name": "www.oracle.com"
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hy2-backup",
+      "server": "31.77.77.47",
+      "server_port": 443,
+      "up_mbps": 50,
+      "down_mbps": 100,
+      "password": "hkGR4DMHE0aXb5vyfR08zg==",
+      "tls": {
+        "enabled": true,
+        "insecure": true,
+        "server_name": "www.oracle.com"
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "experimental": {
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "external_ui": "",
+      "secret": "",
+      "default_mode": "Rule"
+    }
+  },
+  "route": {
+    "rule_set": [
+      {
+        "tag": "geosite-ru",
+        "type": "local",
+        "format": "binary",
+        "path": "/home/vladimir/vpn/geosite-ru.srs"
+      },
+      {
+        "tag": "geoip-ru",
+        "type": "local",
+        "format": "binary",
+        "path": "/home/vladimir/vpn/geoip-ru.srs"
+      }
+    ],
+    "rules": [
+      {
+        "action": "hijack-dns",
+        "protocol": "dns"
+      },
+      {
+        "ip_cidr": [
+          "46.8.233.202/32",
+          "31.77.77.47/32",
+          "94.126.153.10/32"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geosite-ru", "geoip-ru"],
+        "outbound": "direct"
+      },
+      {
+        "inbound": "tun-in",
+        "outbound": "auto"
+      }
+    ],
+    "final": "auto",
+    "default_domain_resolver": "dns-direct"
+  }
+}

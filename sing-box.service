@@ -1,0 +1,20 @@
+[Unit]
+Description=sing-box proxy client (auto-failover VPS/VDS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStartPre=/home/vladimir/vpn/sing.sh add-bypass
+ExecStart=/home/vladimir/vpn/sing-box run -c /home/vladimir/vpn/config.json
+ExecStopPost=/home/vladimir/vpn/sing.sh del-bypass
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+LimitNOFILE=65536
+StandardOutput=append:/var/log/sing-box.log
+StandardError=append:/var/log/sing-box.log
+
+[Install]
+WantedBy=multi-user.target
