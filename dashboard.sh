@@ -41,9 +41,9 @@ del_bypass_routes() {
 }
 
 start_singbox() {
-    echo "[*] ..."
-    [ ! -f "$DIR/sing-box" ] && { echo "[!] sing-box  "; exit 1; }
-    [ ! -f "$DIR/config.json" ] && { echo "[!] config.json  "; exit 1; }
+    echo "[*] Zapusk sing-box..."
+    [ ! -f "$DIR/sing-box" ] && { echo "[!] sing-box binary ne nayden"; exit 1; }
+    [ ! -f "$DIR/config.json" ] && { echo "[!] config.json ne nayden"; exit 1; }
     pkill -f "sing-box run -c $DIR" 2>/dev/null; sleep 1
     for iface in sing-tun0 sing-tun1 sing-tun; do
         ip link show "$iface" &>/dev/null && ip link delete "$iface" 2>/dev/null
@@ -58,20 +58,20 @@ start_singbox() {
     resolvectl dns "$TUN_IF" '' 2>/dev/null || true
     resolvectl default-route "$TUN_IF" false 2>/dev/null || true
     sleep 1
-    echo -n "[+] IP: "
+    echo -n "[+] Exit IP: "
     curl -4 -s --connect-timeout 5 --socks5 127.0.0.1:1080 https://ifconfig.me 2>/dev/null || echo "?"
     echo ""
 }
 
 stop_singbox() {
-    echo "[*] ..."
+    echo "[*] Ostanovka sing-box..."
     pkill -f "sing-box run -c $DIR" 2>/dev/null; sleep 1
     pkill -9 -f "sing-box run -c $DIR" 2>/dev/null
     for iface in sing-tun0 sing-tun1 sing-tun; do
         ip link show "$iface" &>/dev/null && ip link delete "$iface" 2>/dev/null
     done
     del_bypass_routes
-    echo "[+] "
+    echo "[+] Ostanovlen"
 }
 
 dashboard() {
@@ -79,26 +79,23 @@ dashboard() {
         clear
         local pid=$(pgrep -f "sing-box run -c $DIR" 2>/dev/null)
 
-        echo "╔══════════════════════════════════════════════════════╗"
-        echo "║                   SING-BOX                          ║"
-        echo "╠══════════════════════════════════════════════════════╣"
-
+        echo "+=====================================================+"
+        echo "|                   SING-BOX                          |"
+        echo "+-----------------------------------------------------+"
         if [ -n "$pid" ]; then
-            echo "║  :  PID $pid                                  ║"
+            echo "|  Status: RUNNING (PID $pid)                         |"
         else
-            echo "║  :                                             ║"
+            echo "|  Status: STOPPED                                    |"
         fi
-
-        echo -n "║  IP:  "
+        echo -n "|  Exit IP: "
         local exit_ip=$(curl -4 -s --connect-timeout 3 --socks5 127.0.0.1:1080 https://ifconfig.me 2>/dev/null)
-        printf "%-40s ║\n" "${exit_ip:-(...)}"
-
-        echo "║  SOCKS5:  127.0.0.1:1080                            ║"
-        echo "║  HTTP:    127.0.0.1:8080                            ║"
-        echo "║  Clash:   127.0.0.1:9090                            ║"
-        echo "╠══════════════════════════════════════════════════════╣"
-        echo "║  ТРАФИК                                             ║"
-        echo "╠══════════════════════════════════════════════════════╣"
+        printf "%-40s |\n" "${exit_ip:-(...)}"
+        echo "|  SOCKS5:  127.0.0.1:1080                            |"
+        echo "|  HTTP:    127.0.0.1:8080                            |"
+        echo "|  Clash:   127.0.0.1:9090                            |"
+        echo "+-----------------------------------------------------+"
+        echo "|  TRAFFIC                                             |"
+        echo "+-----------------------------------------------------+"
 
         if is_running; then
             local conns=$(curl -s --connect-timeout 2 "$CLASH/connections" 2>/dev/null)
@@ -115,21 +112,23 @@ try:
         if b>=1048576: return f'{b/1048576:.1f} MB'
         if b>=1024: return f'{b/1024:.0f} KB'
         return f'{b} B'
-    print(f'║  :      {fmt(up):>12s}                          ║')
-    print(f'║  :    {fmt(dn):>12s}                          ║')
-    print(f'║  :     {n} active{\" \"*(32-len(str(n)))}║')
+    print(f'|  Upload:    {fmt(up):>12s}                          |')
+    print(f'|  Download:  {fmt(dn):>12s}                          |')
+    print(f'|  Conn:      {n} active{\" \"*(32-len(str(n)))}|')
 except: pass
 " <<< "$conns"
             else
-                echo "║  (Clash API )                                      ║"
+                echo "|  (Clash API ne dostupen)                             |"
             fi
         else
-            echo "║  (sing-box )                                      ║"
+            echo "|  (sing-box ne zapushen)                              |"
         fi
 
-        echo "╠══════════════════════════════════════════════════════╣"
-        echo "║  [1]         [2]         [3]               ║"
-        echo "╚══════════════════════════════════════════════════════╝"
+        echo "+-----------------------------------------------------+"
+        echo "|  [1] START   zapustit                               |"
+        echo "|  [2] STOP    ostanovit                              |"
+        echo "|  [3] EXIT    vyhod                                  |"
+        echo "+=====================================================+"
 
         read -t $INTERVAL -n 1 -s key 2>/dev/null
         case "$key" in
@@ -141,18 +140,18 @@ except: pass
 }
 
 case "${1:-}" in
-    start)  start_singbox; echo "[*] ..."; sleep 1; dashboard ;;
+    start)  start_singbox; echo "[*] Zapusk dashboard..."; sleep 1; dashboard ;;
     stop)   stop_singbox ;;
     status)
         if is_running; then
-            echo "sing-box:  (PID $(pgrep -f "sing-box run -c $DIR"))"
-            echo -n "  IP: "; curl -4 -s --connect-timeout 3 --socks5 127.0.0.1:1080 https://ifconfig.me 2>/dev/null || echo "?"
+            echo "sing-box: RUNNING (PID $(pgrep -f "sing-box run -c $DIR"))"
+            echo -n "  Exit IP: "; curl -4 -s --connect-timeout 3 --socks5 127.0.0.1:1080 https://ifconfig.me 2>/dev/null || echo "?"
         else
-            echo "sing-box: "
+            echo "sing-box: STOPPED"
         fi
         ;;
     *)
-        if is_running; then echo "[*] sing-box , ..."; dashboard
-        else echo ": $0 {start|stop|status}"; fi
+        if is_running; then echo "[*] sing-box uzhe zapushen..."; dashboard
+        else echo "Usage: $0 {start|stop|status}"; fi
         ;;
 esac

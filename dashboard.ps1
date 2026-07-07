@@ -1,7 +1,6 @@
 # sing-box portable dashboard (Windows)
 # Usage: powershell -ExecutionPolicy Bypass -File dashboard.ps1
 
-# Required for sing-box 1.12.x compatibility
 $env:ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER = "true"
 
 $Dir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -22,14 +21,14 @@ function Is-Running {
 
 function Start-SingBox {
     Write-Host ""
-    Write-Host "  [*] ..." -ForegroundColor Yellow
+    Write-Host "  [*] Zapusk sing-box..." -ForegroundColor Yellow
 
     if (-not (Test-Path $Exe)) {
-        Write-Host "  [!] sing-box.exe  " -ForegroundColor Red
+        Write-Host "  [!] sing-box.exe ne nayden" -ForegroundColor Red
         return
     }
     if (-not (Test-Path $Config)) {
-        Write-Host "  [!] config-windows.json  " -ForegroundColor Red
+        Write-Host "  [!] config-windows.json ne nayden" -ForegroundColor Red
         return
     }
 
@@ -40,18 +39,18 @@ function Start-SingBox {
     Start-Sleep -Seconds 5
 
     if (Is-Running) {
-        Write-Host "  [+] " -ForegroundColor Green
+        Write-Host "  [+] ZAPUSHEN" -ForegroundColor Green
     } else {
-        Write-Host "  [!]  -  sing-box.log" -ForegroundColor Red
+        Write-Host "  [!] OSHIBKA - sm. sing-box.log" -ForegroundColor Red
     }
 }
 
 function Stop-SingBox {
     Write-Host ""
-    Write-Host "  [*] ..." -ForegroundColor Yellow
+    Write-Host "  [*] Ostanovka sing-box..." -ForegroundColor Yellow
     Stop-Process -Name "sing-box" -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-    Write-Host "  [+] " -ForegroundColor Green
+    Write-Host "  [+] OSTANOVLЕН" -ForegroundColor Green
 }
 
 function Get-TrafficStats {
@@ -92,6 +91,7 @@ function Show-Box($lines, $title) {
         $pad = $w - $title.Length - 4
         $lp = [int]($pad / 2)
         $rp = $pad - $lp
+        if ($lp -lt 0) { $lp = 0; $rp = 0 }
         Write-Host ("|" + " " * $lp + $title + " " * $rp + "|") -ForegroundColor Cyan
         Write-Host $border -ForegroundColor Cyan
     }
@@ -115,42 +115,42 @@ function Show-Dashboard {
         $statusText = if ($running) {
             $proc = Get-Process -Name "sing-box" -ErrorAction SilentlyContinue | Select-Object -First 1
             $procId = if ($proc) { $proc.Id } else { "?" }
-            "PID $procId"
-        } else { " " }
+            "RUNNING (PID $procId)"
+        } else { "STOPPED" }
         $statusColor = if ($running) { "Green" } else { "Red" }
 
         $header = @(
             @{ Text = ""; Color = "Cyan" }
-            @{ Text = "          SING-BOX"; Color = "White" }
+            @{ Text = "              SING-BOX"; Color = "White" }
             @{ Text = ""; Color = "Cyan" }
-            @{ Text = "  :  $statusText"; Color = $statusColor }
-            @{ Text = "  IP:       $($stats.ExitIP)"; Color = "Cyan" }
+            @{ Text = "  Status:    $statusText"; Color = $statusColor }
+            @{ Text = "  Exit IP:   $($stats.ExitIP)"; Color = "Cyan" }
             @{ Text = ""; Color = "Cyan" }
-            @{ Text = "  SOCKS5:   127.0.0.1:1080"; Color = "DarkGray" }
-            @{ Text = "  HTTP:     127.0.0.1:8080"; Color = "DarkGray" }
-            @{ Text = "  Clash:    127.0.0.1:9090"; Color = "DarkGray" }
+            @{ Text = "  SOCKS5:    127.0.0.1:1080"; Color = "DarkGray" }
+            @{ Text = "  HTTP:      127.0.0.1:8080"; Color = "DarkGray" }
+            @{ Text = "  Clash:     127.0.0.1:9090"; Color = "DarkGray" }
         )
-        Show-Box $header "СТАТУС"
+        Show-Box $header "STATUS"
 
         $upStr = Format-Bytes $stats.Up
         $dnStr = Format-Bytes $stats.Down
 
         $trafficLines = @(
-            @{ Text = "  :      $upStr"; Color = "Green" }
-            @{ Text = "  :    $dnStr"; Color = "Green" }
-            @{ Text = "  :     $($stats.Connections) "; Color = "White" }
+            @{ Text = "  Upload:    $upStr"; Color = "Green" }
+            @{ Text = "  Download:  $dnStr"; Color = "Green" }
+            @{ Text = "  Conn:      $($stats.Connections) active"; Color = "White" }
         )
-        Show-Box $trafficLines "ТРАФИК"
+        Show-Box $trafficLines "TRAFFIC"
 
         $menuLines = @(
-            @{ Text = "  [1]  "; Color = "Yellow" }
-            @{ Text = "  [2]  "; Color = "Yellow" }
-            @{ Text = "  [3]  "; Color = "Yellow" }
+            @{ Text = "  [1] START  - zapustit sing-box"; Color = "Yellow" }
+            @{ Text = "  [2] STOP   - ostanovit sing-box"; Color = "Yellow" }
+            @{ Text = "  [3] EXIT   - vyhod"; Color = "Yellow" }
         )
-        Show-Box $menuLines "МЕНЮ"
+        Show-Box $menuLines "MENU"
 
         Write-Host ""
-        Write-Host "  ..." -NoNewline -ForegroundColor DarkGray
+        Write-Host "  Nazhmite klavishu..." -NoNewline -ForegroundColor DarkGray
 
         $key = $null
         $waited = 0
