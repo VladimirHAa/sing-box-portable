@@ -6,15 +6,17 @@
     "servers": [
       {
         "tag": "dns-direct",
-        "address": "udp://1.1.1.1",
-        "detour": "direct",
-        "strategy": "ipv4_only"
+        "type": "https",
+        "server": "1.1.1.1"
       },
       {
         "tag": "dns-remote",
-        "address": "tls://1.1.1.1",
-        "detour": "auto",
-        "strategy": "ipv4_only"
+        "type": "tls",
+        "server": "1.1.1.1"
+      },
+      {
+        "tag": "dns-local",
+        "type": "local"
       }
     ],
     "rules": [
@@ -27,7 +29,6 @@
       }
     ],
     "final": "dns-remote",
-    "strategy": "ipv4_only",
     "independent_cache": true
   },
   "inbounds": [
@@ -35,11 +36,7 @@
       "type": "tun",
       "tag": "tun-in",
       "interface_name": "sing-tun",
-      "address": ["172.16.254.1/30"],
-      "auto_route": true,
-      "strict_route": true,
-      "sniff": true,
-      "stack": "system"
+      "address": ["172.16.254.1/30"]
     },
     {
       "type": "socks",
@@ -58,38 +55,52 @@
     {
       "type": "urltest",
       "tag": "auto",
-      "outbounds": ["hy2-vps", "hy2-backup"],
+      "outbounds": ["reality-vps", "reality-vds"],
       "url": "https://www.gstatic.com/generate_204",
       "interval": "1m",
       "tolerance": 100,
       "interrupt_exist_connections": true
     },
     {
-      "type": "hysteria2",
-      "tag": "hy2-vps",
+      "type": "vless",
+      "tag": "reality-vps",
       "server": "46.8.233.202",
-      "server_port": 9444,
-      "up_mbps": 100,
-      "down_mbps": 200,
-      "password": "hkGR4DMHE0aXb5vyfR08zg==",
+      "server_port": 9443,
+      "uuid": "7b6563b4-245e-48d2-9fc9-91bd853d0d28",
+      "flow": "xtls-rprx-vision",
       "tls": {
         "enabled": true,
-        "insecure": true,
-        "server_name": "www.oracle.com"
+        "server_name": "www.oracle.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "uUHzOa0bnkW1gxp0uwrsPndYt1U2wmIAw0K1PtG1ahA",
+          "short_id": "a0a7fbe124f03d53"
+        }
       }
     },
     {
-      "type": "hysteria2",
-      "tag": "hy2-backup",
+      "type": "vless",
+      "tag": "reality-vds",
       "server": "31.77.77.47",
-      "server_port": 443,
-      "up_mbps": 50,
-      "down_mbps": 100,
-      "password": "hkGR4DMHE0aXb5vyfR08zg==",
+      "server_port": 9443,
+      "uuid": "7b6563b4-245e-48d2-9fc9-91bd853d0d28",
+      "flow": "xtls-rprx-vision",
       "tls": {
         "enabled": true,
-        "insecure": true,
-        "server_name": "www.oracle.com"
+        "server_name": "www.oracle.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "uUHzOa0bnkW1gxp0uwrsPndYt1U2wmIAw0K1PtG1ahA",
+          "short_id": "a0a7fbe124f03d53"
+        }
       }
     },
     {
@@ -100,30 +111,34 @@
   "experimental": {
     "clash_api": {
       "external_controller": "127.0.0.1:9090",
-      "external_ui": "",
-      "secret": "",
       "default_mode": "Rule"
     }
   },
   "route": {
+    "auto_detect_interface": true,
+    "default_domain_resolver": "dns-local",
+    "final": "auto",
     "rule_set": [
       {
         "tag": "geosite-ru",
         "type": "local",
         "format": "binary",
-        "path": "geosite-ru.srs"
+        "path": "C:\\Users\\mokre\\sing-box-portable\\geosite-ru.srs"
       },
       {
         "tag": "geoip-ru",
         "type": "local",
         "format": "binary",
-        "path": "geoip-ru.srs"
+        "path": "C:\\Users\\mokre\\sing-box-portable\\geoip-ru.srs"
       }
     ],
     "rules": [
       {
         "action": "hijack-dns",
         "protocol": "dns"
+      },
+      {
+        "action": "sniff"
       },
       {
         "ip_cidr": [
@@ -142,12 +157,9 @@
         "outbound": "direct"
       },
       {
-        "inbound": "tun-in",
+        "inbound": ["tun-in"],
         "outbound": "auto"
       }
-    ],
-    "final": "auto",
-    "auto_detect_interface": true,
-    "default_domain_resolver": "dns-direct"
+    ]
   }
 }

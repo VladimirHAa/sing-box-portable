@@ -8,6 +8,7 @@ UNIT_FILE="/etc/systemd/system/sing-box.service"
 TUN_IF="sing-tun"
 LOG="$DIR/sing-box.log"
 BYPASS_IPS=("46.8.233.202/32" "31.77.77.47/32" "94.126.153.10/32")
+export ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER=true
 BYPASS_PRIO=8998
 
 add_bypass_routes() {
