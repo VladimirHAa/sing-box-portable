@@ -8,7 +8,6 @@ $Dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Clash = "http://127.0.0.1:9090"
 $Exe = Join-Path $Dir "sing-box.exe"
 $Config = Join-Path $Dir "config-windows.json"
-$Log = Join-Path $Dir "sing-box.log"
 
 function Format-Bytes($b) {
     if ($b -ge 1GB) { return "{0:N2} GB" -f ($b / 1GB) }
@@ -23,36 +22,36 @@ function Is-Running {
 
 function Start-SingBox {
     Write-Host ""
-    Write-Host "  [*] Starting sing-box..." -ForegroundColor Yellow
+    Write-Host "  [*] ..." -ForegroundColor Yellow
 
     if (-not (Test-Path $Exe)) {
-        Write-Host "  [!] sing-box.exe not found" -ForegroundColor Red
+        Write-Host "  [!] sing-box.exe  " -ForegroundColor Red
         return
     }
     if (-not (Test-Path $Config)) {
-        Write-Host "  [!] config-windows.json not found" -ForegroundColor Red
+        Write-Host "  [!] config-windows.json  " -ForegroundColor Red
         return
     }
 
     Stop-Process -Name "sing-box" -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 
-    Start-Process -FilePath $Exe -ArgumentList "run -c `"$Config`" -D `"$Dir`"" -WindowStyle Hidden
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "set ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER=true && `"$Exe`" run -c `"$Config`" -D `"$Dir`"" -WindowStyle Hidden
     Start-Sleep -Seconds 5
 
     if (Is-Running) {
-        Write-Host "  [+] sing-box RUNNING" -ForegroundColor Green
+        Write-Host "  [+] " -ForegroundColor Green
     } else {
-        Write-Host "  [!] FAILED - check sing-box.log" -ForegroundColor Red
+        Write-Host "  [!]  -  sing-box.log" -ForegroundColor Red
     }
 }
 
 function Stop-SingBox {
     Write-Host ""
-    Write-Host "  [*] Stopping sing-box..." -ForegroundColor Yellow
+    Write-Host "  [*] ..." -ForegroundColor Yellow
     Stop-Process -Name "sing-box" -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-    Write-Host "  [+] Stopped" -ForegroundColor Green
+    Write-Host "  [+] " -ForegroundColor Green
 }
 
 function Get-TrafficStats {
@@ -60,7 +59,6 @@ function Get-TrafficStats {
         Up = 0
         Down = 0
         Connections = 0
-        Proxies = @{}
         ExitIP = "?"
     }
 
@@ -72,10 +70,6 @@ function Get-TrafficStats {
             $data = $json | ConvertFrom-Json -ErrorAction SilentlyContinue
             if ($data -and $data.connections) {
                 $result.Connections = $data.connections.Count
-                foreach ($c in $data.connections) {
-                    $result.Up += $c.upload
-                    $result.Down += $c.download
-                }
             }
             $result.Up = if ($data) { $data.uploadTotal } else { 0 }
             $result.Down = if ($data) { $data.downloadTotal } else { 0 }
@@ -112,64 +106,51 @@ function Show-Box($lines, $title) {
 }
 
 function Show-Dashboard {
-    $prevUp = 0
-    $prevDown = 0
-    $startTime = Get-Date
-
     while ($true) {
         Clear-Host
 
         $running = Is-Running
         $stats = Get-TrafficStats
 
-        # Header
         $statusText = if ($running) {
             $proc = Get-Process -Name "sing-box" -ErrorAction SilentlyContinue | Select-Object -First 1
             $procId = if ($proc) { $proc.Id } else { "?" }
-            "RUNNING  PID $procId"
-        } else { "STOPPED" }
+            "PID $procId"
+        } else { " " }
         $statusColor = if ($running) { "Green" } else { "Red" }
-
-        $elapsed = (Get-Date) - $startTime
-        $uptime = "{0:hh\:mm\:ss}" -f $elapsed
 
         $header = @(
             @{ Text = ""; Color = "Cyan" }
-            @{ Text = "     SING-BOX PORTABLE"; Color = "White" }
+            @{ Text = "          SING-BOX"; Color = "White" }
             @{ Text = ""; Color = "Cyan" }
-            @{ Text = "  Status:  $statusText"; Color = $statusColor }
-            @{ Text = "  Uptime:  $uptime"; Color = "White" }
-            @{ Text = "  Exit IP: $($stats.ExitIP)"; Color = "Cyan" }
+            @{ Text = "  :  $statusText"; Color = $statusColor }
+            @{ Text = "  IP:       $($stats.ExitIP)"; Color = "Cyan" }
             @{ Text = ""; Color = "Cyan" }
-            @{ Text = "  SOCKS5:  127.0.0.1:1080"; Color = "DarkGray" }
-            @{ Text = "  HTTP:    127.0.0.1:8080"; Color = "DarkGray" }
-            @{ Text = "  Clash:   127.0.0.1:9090"; Color = "DarkGray" }
+            @{ Text = "  SOCKS5:   127.0.0.1:1080"; Color = "DarkGray" }
+            @{ Text = "  HTTP:     127.0.0.1:8080"; Color = "DarkGray" }
+            @{ Text = "  Clash:    127.0.0.1:9090"; Color = "DarkGray" }
         )
-        Show-Box $header "STATUS"
+        Show-Box $header "СТАТУС"
 
-        # Traffic
         $upStr = Format-Bytes $stats.Up
         $dnStr = Format-Bytes $stats.Down
 
         $trafficLines = @(
-            @{ Text = "  UP:    $upStr"; Color = "Green" }
-            @{ Text = "  DOWN:  $dnStr"; Color = "Green" }
-            @{ Text = "  CONN:  $($stats.Connections) active"; Color = "White" }
+            @{ Text = "  :      $upStr"; Color = "Green" }
+            @{ Text = "  :    $dnStr"; Color = "Green" }
+            @{ Text = "  :     $($stats.Connections) "; Color = "White" }
         )
-        Show-Box $trafficLines "TRAFFIC"
+        Show-Box $trafficLines "ТРАФИК"
 
-        # Menu
         $menuLines = @(
-            @{ Text = "  [1] START    - launch sing-box"; Color = "Yellow" }
-            @{ Text = "  [2] STOP     - kill sing-box"; Color = "Yellow" }
-            @{ Text = "  [3] STATUS   - check exit IP"; Color = "Yellow" }
-            @{ Text = "  [Q] EXIT     - quit dashboard"; Color = "Yellow" }
+            @{ Text = "  [1]  "; Color = "Yellow" }
+            @{ Text = "  [2]  "; Color = "Yellow" }
+            @{ Text = "  [3]  "; Color = "Yellow" }
         )
-        Show-Box $menuLines "MENU"
+        Show-Box $menuLines "МЕНЮ"
 
-        # Wait for input
         Write-Host ""
-        Write-Host "  Press a key..." -NoNewline -ForegroundColor DarkGray
+        Write-Host "  ..." -NoNewline -ForegroundColor DarkGray
 
         $key = $null
         $waited = 0
@@ -182,39 +163,18 @@ function Show-Dashboard {
                     $waited++
                 }
             } catch {
-                # No console (e.g. SSH session) — just sleep
                 Start-Sleep -Seconds 1
                 $waited++
             }
         }
 
         if ($null -ne $key) {
-            switch ($key.KeyChar.ToString().ToLower()) {
+            switch ($key.KeyChar.ToString()) {
                 "1" { Start-SingBox; Start-Sleep -Seconds 2 }
                 "2" { Stop-SingBox; Start-Sleep -Seconds 2 }
                 "3" {
-                    if (Is-Running) {
-                        Write-Host ""
-                        Write-Host "  Checking exit IP..." -ForegroundColor Yellow
-                        try {
-                            $ip = curl.exe -4 -sk --connect-timeout 5 --socks5 127.0.0.1:1080 https://ifconfig.me 2>$null
-                            Write-Host "  Exit IP: $ip" -ForegroundColor Cyan
-                        } catch {
-                            Write-Host "  Exit IP: timeout" -ForegroundColor DarkGray
-                        }
-                        Start-Sleep -Seconds 3
-                    } else {
-                        Write-Host ""
-                        Write-Host "  sing-box not running" -ForegroundColor Red
-                        Start-Sleep -Seconds 2
-                    }
-                }
-                "q" {
-                    Write-Host ""
-                    Write-Host "  Stopping sing-box..." -ForegroundColor Yellow
                     Stop-Process -Name "sing-box" -Force -ErrorAction SilentlyContinue
                     Start-Sleep -Seconds 1
-                    Write-Host "  Bye!" -ForegroundColor Green
                     return
                 }
             }
@@ -222,5 +182,4 @@ function Show-Dashboard {
     }
 }
 
-# --- Main ---
 Show-Dashboard
